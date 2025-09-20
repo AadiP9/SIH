@@ -8,35 +8,44 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Configure storage for Cloudinary
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'civicvoice-reports',
-    format: async (req, file) => 'jpeg', // supports promises as well
-    public_id: (req, file) => 'report-' + Date.now(),
+  params: (req, file) => {
+    // For audio files, save them as raw files in a 'voice-notes' folder
+    if (file.mimetype.startsWith('audio/')) {
+      return {
+        folder: 'civicvoice-voicenotes',
+        resource_type: 'raw', // Important for non-image files
+        public_id: 'voicenote-' + Date.now(),
+      };
+    }
+    // For image files, save them in the 'reports' folder
+    return {
+      folder: 'civicvoice-reports',
+      format: 'jpeg',
+      public_id: 'report-' + Date.now(),
+    };
   },
 });
 
-const multer = require('multer');
-// ... (keep cloudinary config the same)
-
+// Filter to allow specific image and audio file types
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|pdf|mp3|wav/;
+    // Allow images and common audio formats
+    const allowedTypes = /jpeg|jpg|png|mp3|wav|m4a|mpeg/;
     const mimetype = allowedTypes.test(file.mimetype);
-    const extname = allowedTypes.test(file.originalname.split('.').pop());
-
-    if (mimetype && extname) {
+    
+    if (mimetype) {
         return cb(null, true);
     }
-    cb(new Error('File type not supported. Only jpeg, jpg, png, and pdf are allowed.'), false);
+    cb(new Error('File type not supported. Only images (jpeg, png) and audio (mp3, wav) are allowed.'), false);
 };
 
+// Configure multer with the storage, file filter, and size limits
 const upload = multer({ 
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 1024 * 1024 * 5 } // Limit file size to 5MB
+    limits: { fileSize: 1024 * 1024 * 10 } // Limit file size to 10MB
 });
-
-module.exports = { upload };
 
 module.exports = { upload };

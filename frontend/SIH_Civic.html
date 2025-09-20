@@ -1101,7 +1101,8 @@
                         thousands of citizens improving our city, one report at a time. It's free, easy, and effective.
                     </p>
                     <div class="mt-8">
-                        <button class="bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg cta-button"
+                        <button id="cta-signup-btn"
+                            class="bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg cta-button"
                             data-translate="ctaButton">Sign Up & Start Reporting</button>
                     </div>
                 </div>
@@ -1339,8 +1340,7 @@
                                                         class="relative cursor-pointer bg-white rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none">
                                                         <span data-translate="reportUpload">Upload a file</span>
                                                         <input id="file-upload" name="file-upload" type="file"
-                                                            class="sr-only"
-                                                            accept="image/jpeg,image/png,application/pdf">
+                                                            class="sr-only">
                                                     </label>
                                                 </div>
                                             </div>
@@ -2122,10 +2122,55 @@
         citizenTab.addEventListener('click', () => switchLoginTab(true));
         officialTab.addEventListener('click', () => switchLoginTab(false));
 
-        document.getElementById('citizen-otp-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            citizenStep1.classList.add('hidden');
-            citizenStep2.classList.remove('hidden');
+        // --- NEW: Event listener for the main CTA button ---
+        const ctaSignupBtn = document.getElementById('cta-signup-btn');
+        if (ctaSignupBtn) {
+            ctaSignupBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openLoginModal(); // This function is already in your code
+                switchLoginTab(true); // This function is also in your code
+            });
+        }
+
+        // --- UPDATED: Citizen Form Submission with Backend Logic ---
+        document.getElementById('citizen-otp-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent the form from reloading the page
+
+            const contactInput = document.getElementById('citizen-contact');
+            const contactValue = contactInput.value.trim();
+
+            if (!contactValue) {
+                alert('Please enter a phone number or Gmail address.');
+                return;
+            }
+
+            try {
+                // Send the contact info to your backend server
+                const response = await fetch('http://localhost:3000/api/send-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ contact: contactValue }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    console.log('Backend response:', result); // For debugging
+                    alert(`OTP Sent (Simulated): ${result.otp}`); // Show simulated OTP
+
+                    // If backend call is successful, then switch to the OTP screen
+                    citizenStep1.classList.add('hidden');
+                    citizenStep2.classList.remove('hidden');
+                } else {
+                    // If the backend returns an error
+                    throw new Error(result.message || 'Failed to send OTP.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`An error occurred: ${error.message}`);
+            }
         });
 
         document.getElementById('back-to-login-btn').addEventListener('click', () => {
@@ -2271,99 +2316,6 @@
 
         languageSelector.addEventListener('change', (e) => translatePage(e.target.value));
         translatePage('en'); // Initial translation
-
-        // --- LOCATION TRACKING LOGIC ---
-        const useCurrentLocationBtn = document.querySelector('[data-translate="reportCurrentLocation"]').parentElement;
-        const addressInput = document.getElementById('address');
-
-        useCurrentLocationBtn.addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser.');
-                return;
-            }
-
-            const success = async (position) => {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-
-                // Store coordinates in hidden form fields for submission
-                // We will add these hidden fields to the form later.
-                document.getElementById('latitude-input').value = latitude;
-                document.getElementById('longitude-input').value = longitude;
-
-                // Optional: Use a reverse geocoding API to get the address
-                try {
-                    // Using a free, no-key-required API for demonstration
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    const data = await response.json();
-                    if (data && data.display_name) {
-                        addressInput.value = data.display_name;
-                    } else {
-                        addressInput.value = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
-                    }
-                } catch (error) {
-                    console.error("Error fetching address:", error);
-                    addressInput.value = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
-                }
-            };
-
-            const error = () => {
-                alert('Unable to retrieve your location.');
-            };
-
-            navigator.geolocation.getCurrentPosition(success, error);
-        });
-
-        // We need to add hidden inputs to the report form to hold the coordinates
-        const reportForm = document.getElementById('report-form');
-        const latInput = document.createElement('input');
-        latInput.type = 'hidden';
-        latInput.id = 'latitude-input';
-        latInput.name = 'latitude';
-
-        const lonInput = document.createElement('input');
-        lonInput.type = 'hidden';
-        lonInput.id = 'longitude-input';
-        lonInput.name = 'longitude';
-
-        reportForm.appendChild(latInput);
-        reportForm.appendChild(lonInput);
-
-        // --- Bottom CTA and Question Form Logic ---
-
-        // 5. Sign Up button on bottom of the page
-        const bottomSignUpBtn = document.querySelector('[data-translate="ctaButton"]');
-        bottomSignUpBtn.addEventListener('click', () => {
-            openLoginModal(); // Re-use the function to open the login modal
-        });
-
-
-        // 6. Submit Question button
-        const questionForm = document.querySelector('#ask-question form');
-        questionForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const question = document.getElementById('question').value;
-
-            try {
-                const response = await fetch('http://localhost:5000/api/misc/submit-question', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, question })
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.message);
-                    questionForm.reset();
-                } else {
-                    alert(`Error: ${data.message}`);
-                }
-            } catch (error) {
-                alert('Could not connect to the server.');
-            }
-        });
 
     </script>
 

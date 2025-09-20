@@ -1,10 +1,12 @@
 const Report = require('../models/reportModel');
 const User = require('../models/userModel');
+const axios = require('axios');
 
 // @desc    Create a new report
 // @route   POST /api/reports
 // @access  Private (Citizen)
 const createReport = async (req, res) => {
+  // When using FormData, all fields are in req.body as strings
   const { category, description, longitude, latitude, address } = req.body;
 
   if (!req.file) {
@@ -12,7 +14,7 @@ const createReport = async (req, res) => {
   }
 
   if (!category || !description || !longitude || !latitude) {
-    return res.status(400).json({ message: 'Please fill all required fields' });
+    return res.status(400).json({ message: 'Please fill all required fields, including location.' });
   }
 
   try {
@@ -22,7 +24,7 @@ const createReport = async (req, res) => {
       description,
       imageUrl: req.file.path, // URL from Cloudinary
       location: {
-        coordinates: [longitude, latitude],
+        coordinates: [parseFloat(longitude), parseFloat(latitude)], // Convert strings to numbers
         address: address || '',
       },
     });
@@ -46,12 +48,12 @@ const getReports = async (req, res) => {
         const { status, category } = req.query;
         const filter = {};
 
-        if (status) filter.status = status; // e.g., ?status=Resolved
-        if (category) filter.category = category; // e.g., ?category=Pothole
+        if (status) filter.status = status;
+        if (category) filter.category = category;
 
         const reports = await Report.find(filter)
-            .populate('user', 'name') // Get user's name
-            .sort({ createdAt: -1 }); // Newest first
+            .populate('user', 'name')
+            .sort({ createdAt: -1 });
 
         res.json(reports);
     } catch (error) {
@@ -79,7 +81,10 @@ const getReportById = async (req, res) => {
 // @route   PUT /api/reports/:id
 // @access  Private (Official)
 const updateReportStatus = async (req, res) => {
-  // Add role check: if (req.user.role !== 'official') ...
+  if (req.user.role !== 'official') {
+    return res.status(403).json({ message: 'Not authorized.' });
+  }
+
   const { status } = req.body;
   const validStatuses = ['Acknowledged', 'In Progress', 'Resolved'];
 
@@ -92,7 +97,6 @@ const updateReportStatus = async (req, res) => {
       report.status = status;
       const updatedReport = await report.save();
 
-      // If resolved, award points to original reporter
       if (status === 'Resolved') {
         await User.findByIdAndUpdate(report.user, { $inc: { points: 50 } });
       }
@@ -116,12 +120,9 @@ const upvoteReport = async (req, res) => {
             return res.status(404).json({ message: 'Report not found' });
         }
         
-        // Check if user has already upvoted
         if (report.upvotes.includes(req.user._id)) {
-            // Remove upvote
             report.upvotes.pull(req.user._id);
         } else {
-            // Add upvote
             report.upvotes.push(req.user._id);
         }
 
@@ -133,17 +134,6 @@ const upvoteReport = async (req, res) => {
     }
 };
 
-module.exports = {
-  createReport,
-  getReports,
-  getReportById,
-  updateReportStatus,
-  upvoteReport,
-};
-
-const axios = require('axios');
-// ... (keep existing functions)
-
 // @desc    Transcribe a voice note to text
 // @route   POST /api/reports/transcribe
 // @access  Private
@@ -153,24 +143,16 @@ const transcribeVoiceNote = async (req, res) => {
     }
 
     try {
-        // Step 1: Upload the audio file to AssemblyAI
         const uploadResponse = await axios.post('https://api.assemblyai.com/v2/upload', req.file.buffer, {
-            headers: {
-                'authorization': process.env.ASSEMBLYAI_API_KEY,
-                'Content-Type': 'application/octet-stream'
-            }
+            headers: { 'authorization': process.env.ASSEMBLYAI_API_KEY, 'Content-Type': 'application/octet-stream' }
         });
         const upload_url = uploadResponse.data.upload_url;
 
-        // Step 2: Request transcription
-        const transcribeResponse = await axios.post('https://api.assemblyai.com/v2/transcript', {
-            audio_url: upload_url
-        }, {
+        const transcribeResponse = await axios.post('https://api.assemblyai.com/v2/transcript', { audio_url: upload_url }, {
             headers: { 'authorization': process.env.ASSEMBLYAI_API_KEY }
         });
         const transcriptId = transcribeResponse.data.id;
 
-        // Step 3: Poll for the transcription result
         const poll = async () => {
             const pollResponse = await axios.get(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
                 headers: { 'authorization': process.env.ASSEMBLYAI_API_KEY }
@@ -181,17 +163,21 @@ const transcribeVoiceNote = async (req, res) => {
             } else if (pollResponse.data.status === 'failed') {
                 res.status(500).json({ message: 'Transcription failed.' });
             } else {
-                setTimeout(poll, 3000); // Check again in 3 seconds
+                setTimeout(poll, 3000);
             }
         };
         poll();
 
     } catch (error) {
-        res.status(500).json({ message: 'Server Error: ' + error.response.data.error });
+        res.status(500).json({ message: 'Server Error: ' + (error.response ? error.response.data.error : error.message) });
     }
 };
 
 module.exports = {
-  // ... (existing exports)
+  createReport,
+  getReports,
+  getReportById,
+  updateReportStatus,
+  upvoteReport,
   transcribeVoiceNote
 };

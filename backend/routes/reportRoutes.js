@@ -6,20 +6,33 @@ const {
   getReportById,
   updateReportStatus,
   upvoteReport,
+  transcribeVoiceNote,
 } = require('../controllers/reportController');
 const { protect } = require('../middleware/authMiddleware');
-const { upload } = require('../middleware/uploadMiddleware'); // You'll create this next
-const { transcribeVoiceNote } = require('../controllers/reportController');
-// ...
+const { upload } = require('../middleware/uploadMiddleware');
+
+// @route   GET /api/reports
+// @desc    Get all reports (publicly accessible)
+router.get('/', getReports);
+
+// @route   POST /api/reports
+// @desc    Create a new report (requires login, handles image upload)
+router.post('/', protect, upload.single('image'), createReport);
+
+// @route   POST /api/reports/transcribe
+// @desc    Transcribe a voice note (requires login, handles audio upload)
 router.post('/transcribe', protect, upload.single('audio'), transcribeVoiceNote);
-router.route('/')
-  .post(protect, upload.single('image'), createReport) // 'image' should match the form field name
-  .get(getReports);
 
-router.route('/:id')
-  .get(getReportById)
-  .put(protect, updateReportStatus); // Add official role check here later
+// @route   GET /api/reports/:id
+// @desc    Get a single report by its ID (publicly accessible)
+router.get('/:id', getReportById);
 
-router.route('/:id/upvote').post(protect, upvoteReport);
+// @route   PUT /api/reports/:id
+// @desc    Update a report's status (restricted to logged-in officials)
+router.put('/:id', protect, updateReportStatus);
+
+// @route   POST /api/reports/:id/upvote
+// @desc    Upvote or remove upvote from a report (requires login)
+router.post('/:id/upvote', protect, upvoteReport);
 
 module.exports = router;
