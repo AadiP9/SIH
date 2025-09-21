@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CivicVoice | Your Community, Your Voice</title>
+    <link rel="icon" type="image/png" href="/favicon.png"> <script src="https://cdn.tailwindcss.com"></script>
+    <title>CivicVoice | Your Community, Your Voice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Montserrat:wght@400;500;600&display=swap"
@@ -1101,9 +1103,8 @@
                         thousands of citizens improving our city, one report at a time. It's free, easy, and effective.
                     </p>
                     <div class="mt-8">
-                        <button id="cta-signup-btn"
-                            class="bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg cta-button"
-                            data-translate="ctaButton">Sign Up & Start Reporting</button>
+                        <button class="bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg cta-button" data-translate="ctaButton">Sign Up & Start Reporting</button>
+                        <button id="cta-signup-btn" class="bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg cta-button" data-translate="ctaButton">Sign Up & Start Reporting</button>
                     </div>
                 </div>
             </div>
@@ -1608,6 +1609,27 @@
     <script>
         lucide.createIcons();
 
+        const API_BASE_URL = "https://sih-aadip9s-projects.vercel.app/";
+
+        const showNotification = (message, isError = false) => {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.position = 'fixed';
+        notification.style.bottom = '20px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.padding = '12px 20px';
+        notification.style.borderRadius = '8px';
+        notification.style.color = 'white';
+        notification.style.backgroundColor = isError ? '#ef4444' : '#10b981'; // Red for error, Green for success
+        notification.style.zIndex = '1000';
+        notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    };
+
         // Translations object
         const translations = {
             en: {
@@ -1971,25 +1993,27 @@
         };
 
         // Mobile menu toggle
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
 
-        // Reveal on scroll
-        const scrollObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1 });
-
-        document.querySelectorAll('.reveal-on-scroll').forEach(section => {
-            scrollObserver.observe(section);
+           // Reveal on scroll
+    const scrollObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
         });
+    }, {
+        threshold: 0.1
+    });
+
+         document.querySelectorAll('.reveal-on-scroll').forEach(section => {
+        scrollObserver.observe(section);
+    });
 
         // FAQ Accordion
         document.querySelectorAll('.faq-question').forEach(button => {
@@ -2058,69 +2082,75 @@
         });
 
         // --- MODAL LOGIC ---
+    const setupModal = (modalId, openBtns, closeBtnId) => {
+        const modal = document.getElementById(modalId);
+        if (!modal) return {};
+        const modalOverlay = modal.querySelector('.modal-overlay');
+        const modalContent = modal.querySelector('.modal-content');
+        const closeModalBtn = document.getElementById(closeBtnId);
 
-        // Generic Modal Open/Close
-        const setupModal = (modalId, openBtns, closeBtnId) => {
-            const modal = document.getElementById(modalId);
-            if (!modal) return {};
-            const modalOverlay = modal.querySelector('.modal-overlay');
-            const modalContent = modal.querySelector('.modal-content');
-            const closeModalBtn = document.getElementById(closeBtnId);
-
-            const openModal = () => {
-                modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                setTimeout(() => {
-                    modalOverlay.classList.remove('opacity-0');
-                    modalContent.classList.remove('opacity-0', 'translate-y-8');
-                }, 10);
-            };
-            const closeModal = () => {
-                modalOverlay.classList.add('opacity-0');
-                modalContent.classList.add('opacity-0', 'translate-y-8');
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                    document.body.style.overflow = '';
-                }, 300);
-            };
-
-            openBtns.forEach(btn => btn && btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                openModal();
-            }));
-            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
-            if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
-
-            return { modal, openModal, closeModal };
+        const openModal = () => {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => {
+                if(modalOverlay) modalOverlay.classList.remove('opacity-0');
+                if(modalContent) modalContent.classList.remove('opacity-0', 'translate-y-8');
+            }, 10);
+        };
+        const closeModal = () => {
+            if(modalOverlay) modalOverlay.classList.add('opacity-0');
+            if(modalContent) modalContent.classList.add('opacity-0', 'translate-y-8');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
         };
 
-        // Login Modal Specific Logic
-        const citizenLoginBtns = [document.getElementById('citizen-login-btn-desktop'), document.getElementById('citizen-login-btn-mobile')];
-        const officialLoginBtns = [document.getElementById('official-login-btn-desktop'), document.getElementById('official-login-btn-mobile')];
-        const { openModal: openLoginModal } = setupModal('login-modal', [], 'close-login-modal-btn');
+        openBtns.forEach(btn => btn && btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal();
+        }));
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
 
-        const [citizenTab, officialTab, citizenForm, officialForm, citizenStep1, citizenStep2] =
-            ['citizen-tab', 'official-tab', 'citizen-form', 'official-form', 'citizen-step-1', 'citizen-step-2'].map(id => document.getElementById(id));
-
-        const switchLoginTab = (showCitizen) => {
-            const activeTab = showCitizen ? citizenTab : officialTab;
-            const inactiveTab = showCitizen ? officialTab : citizenTab;
-            activeTab.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-teal-500 text-teal-600";
-            inactiveTab.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
-
-            citizenForm.classList.toggle('hidden', !showCitizen);
-            officialForm.classList.toggle('hidden', showCitizen);
-
-            if (showCitizen) {
-                citizenStep1.classList.remove('hidden');
-                citizenStep2.classList.add('hidden');
-            }
+        return {
+            modal,
+            openModal,
+            closeModal
         };
+    };
 
-        citizenLoginBtns.forEach(btn => btn && btn.addEventListener('click', (e) => { e.preventDefault(); openLoginModal(); switchLoginTab(true); }));
-        officialLoginBtns.forEach(btn => btn && btn.addEventListener('click', (e) => { e.preventDefault(); openLoginModal(); switchLoginTab(false); }));
-        citizenTab.addEventListener('click', () => switchLoginTab(true));
-        officialTab.addEventListener('click', () => switchLoginTab(false));
+        
+    // Login Modal Specific Logic
+    const citizenLoginBtns = [document.getElementById('citizen-login-btn-desktop'), document.getElementById('citizen-login-btn-mobile'), document.getElementById('cta-signup-btn')];
+    const { openModal: openLoginModal, closeModal: closeLoginModal } = setupModal('login-modal', [], 'close-login-modal-btn');
+    
+    const [citizenTab, officialTab, citizenForm, officialForm, citizenStep1, citizenStep2] =
+    ['citizen-tab', 'official-tab', 'citizen-form', 'official-form', 'citizen-step-1', 'citizen-step-2'].map(id => document.getElementById(id));
+
+    const switchLoginTab = (showCitizen) => {
+        activeTab = showCitizen ? citizenTab : officialTab;
+        inactiveTab = showCitizen ? officialTab : citizenTab;
+        activeTab.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-teal-500 text-teal-600";
+        inactiveTab.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
+
+        citizenForm.classList.toggle('hidden', !showCitizen);
+        officialForm.classList.toggle('hidden', showCitizen);
+
+        if (showCitizen) {
+            citizenStep1.classList.remove('hidden');
+            citizenStep2.classList.add('hidden');
+        }
+    };
+
+    citizenLoginBtns.forEach(btn => btn && btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openLoginModal();
+        switchLoginTab(true);
+    }));
+
+    citizenTab.addEventListener('click', () => switchLoginTab(true));
+    officialTab.addEventListener('click', () => switchLoginTab(false));
 
         // --- NEW: Event listener for the main CTA button ---
         const ctaSignupBtn = document.getElementById('cta-signup-btn');
@@ -2132,51 +2162,114 @@
             });
         }
 
+        // --- API CALL: Send OTP ---
+    document.getElementById('citizen-otp-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const contactInput = document.getElementById('citizen-contact');
+        const contact = contactInput.value.trim();
+        if (!contact) {
+            showNotification('Please enter a phone number or email.', true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact: contact }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to send OTP.');
+            
+            showNotification('OTP sent successfully!');
+            citizenStep1.classList.add('hidden');
+            citizenStep2.classList.remove('hidden');
+        } catch (error) {
+            showNotification(error.message, true);
+        }
+    });
+    
+    // --- API CALL: Verify OTP ---
+    const verifyOtpForm = citizenStep2.querySelector('form');
+    verifyOtpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const contact = document.getElementById('citizen-contact').value.trim();
+        const otp = document.getElementById('otp-input').value.trim();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact, otp }),
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Invalid OTP.');
+
+            // Login successful!
+            localStorage.setItem('userInfo', JSON.stringify(data)); // Save user data
+            showNotification('Login successful! Welcome.');
+            closeLoginModal();
+            // You can now update the UI to show the user is logged in
+            // For example, change "Login" button to "Logout"
+            
+        } catch (error) {
+            showNotification(error.message, true);
+        }
+    });
+
+    document.getElementById('back-to-login-btn').addEventListener('click', () => {
+        citizenStep2.classList.add('hidden');
+        citizenStep1.classList.remove('hidden');
+    });
+
+
         // --- UPDATED: Citizen Form Submission with Backend Logic ---
-        document.getElementById('citizen-otp-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent the form from reloading the page
+        // document.getElementById('citizen-otp-form').addEventListener('submit', async (e) => {
+        //     e.preventDefault(); // Prevent the form from reloading the page
 
-            const contactInput = document.getElementById('citizen-contact');
-            const contactValue = contactInput.value.trim();
+        //     const contactInput = document.getElementById('citizen-contact');
+        //     const contactValue = contactInput.value.trim();
 
-            if (!contactValue) {
-                alert('Please enter a phone number or Gmail address.');
-                return;
-            }
+        //     if (!contactValue) {
+        //         alert('Please enter a phone number or Gmail address.');
+        //         return;
+        //     }
 
-            try {
-                // Send the contact info to your backend server
-                const response = await fetch('http://localhost:3000/api/send-otp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ contact: contactValue }),
-                });
+        //     try {
+        //         // Send the contact info to your backend server
+        //         const response = await fetch('http://localhost:3000/api/send-otp', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //             },
+        //             body: JSON.stringify({ contact: contactValue }),
+        //         });
 
-                const result = await response.json();
+        //         const result = await response.json();
 
-                if (response.ok) {
-                    console.log('Backend response:', result); // For debugging
-                    alert(`OTP Sent (Simulated): ${result.otp}`); // Show simulated OTP
+        //         if (response.ok) {
+        //             console.log('Backend response:', result); // For debugging
+        //             alert(`OTP Sent (Simulated): ${result.otp}`); // Show simulated OTP
 
-                    // If backend call is successful, then switch to the OTP screen
-                    citizenStep1.classList.add('hidden');
-                    citizenStep2.classList.remove('hidden');
-                } else {
-                    // If the backend returns an error
-                    throw new Error(result.message || 'Failed to send OTP.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert(`An error occurred: ${error.message}`);
-            }
-        });
+        //             // If backend call is successful, then switch to the OTP screen
+        //             citizenStep1.classList.add('hidden');
+        //             citizenStep2.classList.remove('hidden');
+        //         } else {
+        //             // If the backend returns an error
+        //             throw new Error(result.message || 'Failed to send OTP.');
+        //         }
+        //     } catch (error) {
+        //         console.error('Error:', error);
+        //         alert(`An error occurred: ${error.message}`);
+        //     }
+        // });
 
-        document.getElementById('back-to-login-btn').addEventListener('click', () => {
-            citizenStep2.classList.add('hidden');
-            citizenStep1.classList.remove('hidden');
-        });
+        // document.getElementById('back-to-login-btn').addEventListener('click', () => {
+        //     citizenStep2.classList.add('hidden');
+        //     citizenStep1.classList.remove('hidden');
+        // });
 
         // Report Modal Specific Logic
         const { closeModal: closeReportModal } = setupModal('report-modal', [document.getElementById('make-report-btn')], 'close-report-modal-btn');
